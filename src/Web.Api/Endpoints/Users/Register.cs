@@ -1,4 +1,4 @@
-﻿using Application.Abstractions.Messaging;
+using Application.Abstractions.Messaging;
 using Application.Users.Register;
 using SharedKernel;
 using Web.Api.Extensions;
@@ -27,6 +27,7 @@ internal sealed class Register : IEndpoint
 
             return result.Match(Results.Ok, CustomResults.Problem);
         })
-        .WithTags(Tags.Users);
+        .WithTags(Tags.Users)
+        .RequireRateLimiting(RateLimitingPolicies.Authentication);
     }
 }

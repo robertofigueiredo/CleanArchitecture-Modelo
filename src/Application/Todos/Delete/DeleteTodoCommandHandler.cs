@@ -3,11 +3,15 @@ using Application.Abstractions.Data;
 using Application.Abstractions.Messaging;
 using Domain.Todos;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using SharedKernel;
 
 namespace Application.Todos.Delete;
 
-internal sealed class DeleteTodoCommandHandler(IApplicationDbContext context, IUserContext userContext)
+internal sealed class DeleteTodoCommandHandler(
+    IApplicationDbContext context,
+    IUserContext userContext,
+    HybridCache cache)
     : ICommandHandler<DeleteTodoCommand>
 {
     public async Task<Result> Handle(DeleteTodoCommand command, CancellationToken cancellationToken)
@@ -25,6 +29,8 @@ internal sealed class DeleteTodoCommandHandler(IApplicationDbContext context, IU
         todoItem.Raise(new TodoItemDeletedDomainEvent(todoItem.Id));
 
         await context.SaveChangesAsync(cancellationToken);
+
+        await cache.RemoveAsync(TodoCacheKeys.ById(todoItem.UserId, todoItem.Id), cancellationToken);
 
         return Result.Success();
     }

@@ -1,4 +1,5 @@
-﻿using Application.Abstractions.Messaging;
+using Application.Abstractions.Messaging;
+using Application.Abstractions.Pagination;
 using Application.Todos.Get;
 using SharedKernel;
 using Web.Api.Extensions;
@@ -12,12 +13,23 @@ internal sealed class Get : IEndpoint
     {
         app.MapGet("todos", async (
             Guid userId,
-            IQueryHandler<GetTodosQuery, List<TodoResponse>> handler,
+            string? search,
+            string? sortColumn,
+            string? sortOrder,
+            int? page,
+            int? pageSize,
+            IQueryHandler<GetTodosQuery, PagedList<TodoResponse>> handler,
             CancellationToken cancellationToken) =>
         {
-            var query = new GetTodosQuery(userId);
+            var query = new GetTodosQuery(
+                userId,
+                search,
+                sortColumn,
+                sortOrder,
+                page ?? 1,
+                pageSize ?? 10);
 
-            Result<List<TodoResponse>> result = await handler.Handle(query, cancellationToken);
+            Result<PagedList<TodoResponse>> result = await handler.Handle(query, cancellationToken);
 
             return result.Match(Results.Ok, CustomResults.Problem);
         })

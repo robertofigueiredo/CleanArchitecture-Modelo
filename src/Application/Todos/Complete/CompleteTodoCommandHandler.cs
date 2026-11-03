@@ -3,6 +3,7 @@ using Application.Abstractions.Data;
 using Application.Abstractions.Messaging;
 using Domain.Todos;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using SharedKernel;
 
 namespace Application.Todos.Complete;
@@ -10,7 +11,8 @@ namespace Application.Todos.Complete;
 internal sealed class CompleteTodoCommandHandler(
     IApplicationDbContext context,
     IDateTimeProvider dateTimeProvider,
-    IUserContext userContext)
+    IUserContext userContext,
+    HybridCache cache)
     : ICommandHandler<CompleteTodoCommand>
 {
     public async Task<Result> Handle(CompleteTodoCommand command, CancellationToken cancellationToken)
@@ -34,6 +36,8 @@ internal sealed class CompleteTodoCommandHandler(
         todoItem.Raise(new TodoItemCompletedDomainEvent(todoItem.Id));
 
         await context.SaveChangesAsync(cancellationToken);
+
+        await cache.RemoveAsync(TodoCacheKeys.ById(todoItem.UserId, todoItem.Id), cancellationToken);
 
         return Result.Success();
     }

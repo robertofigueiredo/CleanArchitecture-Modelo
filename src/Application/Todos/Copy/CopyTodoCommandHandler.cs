@@ -43,7 +43,7 @@ internal sealed class CopyTodoCommandHandler(
             Description = existingTodo.Description,
             Priority = existingTodo.Priority,
             DueDate = existingTodo.DueDate,
-            Labels = existingTodo.Labels.ToList(), // Create a new list to avoid reference issues
+            Labels = [.. existingTodo.Labels], // Create a new list to avoid reference issues
             IsCompleted = false, // Reset completion status for the copy
             CreatedAt = dateTimeProvider.UtcNow
         };

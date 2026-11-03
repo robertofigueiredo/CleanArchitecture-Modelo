@@ -1,10 +1,12 @@
-﻿using System.Text;
+using System.Text;
 using Application.Abstractions.Authentication;
 using Application.Abstractions.Data;
+using Application.Abstractions.Notifications;
 using Infrastructure.Authentication;
 using Infrastructure.Authorization;
 using Infrastructure.Database;
 using Infrastructure.DomainEvents;
+using Infrastructure.Notifications;
 using Infrastructure.Time;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -34,6 +36,12 @@ public static class DependencyInjection
         services.AddSingleton<IDateTimeProvider, DateTimeProvider>();
 
         services.AddTransient<IDomainEventsDispatcher, DomainEventsDispatcher>();
+
+        services.AddScoped<IEmailSender, LoggingEmailSender>();
+
+#pragma warning disable EXTEXP0018 // HybridCache is released; the API is stable in .NET 10.
+        services.AddHybridCache();
+#pragma warning restore EXTEXP0018
 
         return services;
     }

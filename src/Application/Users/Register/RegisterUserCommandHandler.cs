@@ -26,7 +26,7 @@ internal sealed class RegisterUserCommandHandler(IApplicationDbContext context, 
             PasswordHash = passwordHasher.Hash(command.Password)
         };
 
-        user.Raise(new UserRegisteredDomainEvent(user.Id));
+        user.Raise(new UserRegisteredDomainEvent(user.Id, user.Email));
 
         context.Users.Add(user);
 

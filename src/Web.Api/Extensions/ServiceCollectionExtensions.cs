@@ -1,36 +1,25 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.OpenApi;
+using Microsoft.AspNetCore.OpenApi;
+using Microsoft.Extensions.Configuration;
 
 namespace Web.Api.Extensions;
 
 internal static class ServiceCollectionExtensions
 {
-    internal static IServiceCollection AddSwaggerGenWithAuth(this IServiceCollection services)
+    internal static IServiceCollection AddOpenApiWithAuth(this IServiceCollection services)
     {
-        services.AddSwaggerGen(static o =>
-        {
-            o.CustomSchemaIds(id => id.FullName!.Replace('+', '-'));
+        services.AddOpenApi(options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
 
-            var securityScheme = new OpenApiSecurityScheme
-            {
-                Name = "JWT Authentication",
-                Description = "Enter your JWT token in this field",
-                In = ParameterLocation.Header,
-                Type = SecuritySchemeType.Http,
-                Scheme = JwtBearerDefaults.AuthenticationScheme,
-                BearerFormat = "JWT"
-            };
+        return services;
+    }
 
-            o.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, securityScheme);
-
-            o.AddSecurityRequirement(document => new OpenApiSecurityRequirement
-            {
-                {
-                    new OpenApiSecuritySchemeReference(JwtBearerDefaults.AuthenticationScheme, document),
-                    []
-                }
-            });
-        });
+    internal static IServiceCollection AddCorsInternal(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddCors(options => options.AddDefaultPolicy(policy =>
+            policy
+                .WithOrigins(configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [])
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials()));
 
         return services;
     }

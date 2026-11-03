@@ -1,4 +1,4 @@
-﻿using Application.Abstractions.Authentication;
+using Application.Abstractions.Authentication;
 using Application.Abstractions.Data;
 using Application.Abstractions.Messaging;
 using Domain.Users;
@@ -10,9 +10,10 @@ namespace Application.Users.Login;
 internal sealed class LoginUserCommandHandler(
     IApplicationDbContext context,
     IPasswordHasher passwordHasher,
-    ITokenProvider tokenProvider) : ICommandHandler<LoginUserCommand, string>
+    ITokenProvider tokenProvider,
+    IDateTimeProvider dateTimeProvider) : ICommandHandler<LoginUserCommand, AccessTokensResponse>
 {
-    public async Task<Result<string>> Handle(LoginUserCommand command, CancellationToken cancellationToken)
+    public async Task<Result<AccessTokensResponse>> Handle(LoginUserCommand command, CancellationToken cancellationToken)
     {
         User? user = await context.Users
             .AsNoTracking()
@@ -20,18 +21,33 @@ internal sealed class LoginUserCommandHandler(
 
         if (user is null)
         {
-            return Result.Failure<string>(UserErrors.NotFoundByEmail);
+            return Result.Failure<AccessTokensResponse>(UserErrors.NotFoundByEmail);
         }
 
         bool verified = passwordHasher.Verify(command.Password, user.PasswordHash);
 
         if (!verified)
         {
-            return Result.Failure<string>(UserErrors.NotFoundByEmail);
+            return Result.Failure<AccessTokensResponse>(UserErrors.NotFoundByEmail);
         }
 
-        string token = tokenProvider.Create(user);
+        string accessToken = tokenProvider.Create(user);
+        string refreshToken = tokenProvider.GenerateRefreshToken();
 
-        return token;
+        var refreshTokenEntity = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            Token = refreshToken,
+            UserId = user.Id,
+            ExpiresOnUtc = dateTimeProvider.UtcNow.AddDays(RefreshTokenExpirationInDays)
+        };
+
+        context.RefreshTokens.Add(refreshTokenEntity);
+
+        await context.SaveChangesAsync(cancellationToken);
+
+        return new AccessTokensResponse(accessToken, refreshToken);
     }
+
+    private const int RefreshTokenExpirationInDays = 7;
 }
